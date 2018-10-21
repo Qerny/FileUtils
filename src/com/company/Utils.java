@@ -1,81 +1,93 @@
 package com.company;
 
-import java.io.*;
-import java.util.*;
 
-//Класс для работы с файлами
-public class Utils implements IOperations {
+//Класс со вспомогательными операциями
+public class Utils {
 
-    //константа, текущее расположение (в консоли ее не будет)
-    private final static String myFolder = "D:\\Me\\Java\\FileUtility\\Test";
+    private static final String myFolder = "D:\\VSU HW\\5 семестр\\Java\\FileUtils\\test";
 
-    //выводит отсортированный по имени список директорий и файлов в текущей директории (revOrder == true - по убываанию, false - по возрастанию)
-    public void PrintNamesDirAndFiles(boolean revOrder)
+    //получить все ключи из строки
+    private static String[] getKeys(String strKeys)
     {
-        File initFolder = new File(myFolder);
-        File[] files = initFolder.listFiles();
-        List<File> lst = Arrays.asList(files);
+        int len = 10;
+        String[] keys = new String[len];
+        int startIndex = 0;
+        int endIndex = strKeys.indexOf(" ");
+        int i = 0;
 
-        if(revOrder)
-            Collections.sort(lst, Collections.reverseOrder());
-        else
-            Collections.sort(lst);
+        while (endIndex!=-1)
+        {
+            keys[i] = strKeys.substring(startIndex,endIndex);
+            startIndex = endIndex+1;
+            endIndex = strKeys.indexOf(" ",startIndex+1);
+            i++;
+        }
 
-        for(int i=0; i<lst.size();i++)
-            System.out.println(lst.get(i).getName());
+        keys[i]=strKeys.substring(startIndex,strKeys.length());
+
+        return keys;
     }
 
-    //создает новую директорию с именем name, если такая существует - выводит ошибку
-    public void CreateNewDir(String name)
+    //выполнить операцию из строки при условии, что она корректная
+    public static void RunOperation(String source)
     {
-        File newDir = new File(myFolder + "\\" + name);
-        if(!newDir.exists())
-            newDir.mkdir();
-        else
-            System.err.println("Директория с таким именем уже существует");
-    }
+        int endIndex = source.indexOf(" ");
+        String strCmd;
+        String strKeys;
+        boolean isKeys;
 
-    //создает новый текстовый файл, если такой существует - выводит ошибку
-    public void CreateNewTextFile(String text, String name)
-    {
-        File newFile = new File(myFolder + "\\" + name);
-        try {
-            if(!newFile.exists())
+        //если операция единственная в строке, то ключей нет
+        if(endIndex==-1)
+        {
+            strCmd = source.toString();     ///////////////////////////////////////
+            isKeys = false;
+            strKeys = "";
+        }
+        else
+        {
+            strCmd = source.substring(0,endIndex);
+            strKeys = source.substring(endIndex+1,source.length());
+            isKeys = true;
+        }
+
+        //выбираем операцию (команду)
+        Command cmd;
+        switch (strCmd) {
+            case "ls":
             {
-                newFile.createNewFile();
-
-                FileWriter fw = new FileWriter(newFile);
-                fw.write(text);
-                fw.close();
+                cmd = new CommandLS(myFolder);
             }
+            break;
+            case "mkdir": {
+                cmd = new CommandMKDIR(myFolder);
+            }
+            break;
+            case "echo": {
+                cmd = new CommandECHO(myFolder);
+            }
+            break;
+            case "cat": {
+                cmd = new CommandCAT(myFolder);
+            }
+            break;
+            default:
+            {
+                System.out.println("Команда введена некорректно");
+                return;
+            }
+        }
+
+        if (isKeys)
+        {
+            if(cmd.setKeys(getKeys(strKeys)))
+                cmd.run();
             else
-                System.err.println("Файл с таким именем уже существует");
+                System.out.println("Команда введена некорректно");
         }
-        catch(IOException e)
-        {
-            System.err.println(e.getMessage());
-        }
-    }
-
-    //выводит содержимое текстовых файлов
-    public void PrintTextFile(String ... names)
-    {
-        try
-        {
-            for(int i = 0; i<names.length; i++)
-            {
-                BufferedReader reader = new BufferedReader(new FileReader(myFolder + "\\" + names[i]));
-                String line;
-                while ((line = reader.readLine()) != null)
-                    System.out.println(line);
-
-                if (i < names.length-1)
-                    System.out.println();
-            }
-        }
-        catch(IOException e)
-        {
-            System.err.println(e.getMessage());
-        }
+        else
+            if(cmd.isRequiredKeys)
+                System.out.println("Команда введена некорректно");
+            else
+                cmd.run();
     }
 }
